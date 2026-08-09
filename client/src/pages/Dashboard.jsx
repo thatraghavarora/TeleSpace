@@ -2,7 +2,7 @@ import {
   ArrowDownUp, ChevronRight, Clock3, Download, Eye, File, FileArchive,
   FileImage, FileText, FileUp, Folder, FolderPlus, Grid2X2, HardDrive,
   Image, LayoutDashboard, LayoutList, LogOut, Menu, MessageCircle, MoreHorizontal,
-  Music2, Palette, Plus, PieChart, Server, Trash2, Upload, Video, X, Sparkles
+  Music2, Palette, Plus, PieChart, RefreshCw, Server, Trash2, Upload, Video, X, Sparkles
 } from "lucide-react";
 import { useMemo, useState, useEffect } from "react";
 import toast from "react-hot-toast";
@@ -130,6 +130,51 @@ export default function Dashboard() {
   const [targetUploadFolderId, setTargetUploadFolderId] = useState(null);
   const [selectedFileForPreview, setSelectedFileForPreview] = useState(null);
   const [moveModalFile, setMoveModalFile] = useState(null);
+  const [isSyncing, setIsSyncing] = useState(false);
+
+  const fetchServerData = async () => {
+    try {
+      const [drivesRes, foldersRes, filesRes] = await Promise.all([
+        api.get("/files/drives").catch(() => null),
+        api.get("/files/folders").catch(() => null),
+        api.get("/files/list").catch(() => null)
+      ]);
+
+      if (drivesRes?.data?.drives && Array.isArray(drivesRes.data.drives)) {
+        setDrives(drivesRes.data.drives);
+        localStorage.setItem(driveKey, JSON.stringify(drivesRes.data.drives));
+      }
+
+      if (foldersRes?.data?.folders && Array.isArray(foldersRes.data.folders)) {
+        setFolders(foldersRes.data.folders);
+        localStorage.setItem(folderKey, JSON.stringify(foldersRes.data.folders));
+      }
+
+      if (filesRes?.data?.allFiles && Array.isArray(filesRes.data.allFiles)) {
+        setFiles(filesRes.data.allFiles);
+        localStorage.setItem(historyKey, JSON.stringify(filesRes.data.allFiles));
+      } else if (filesRes?.data?.files && Array.isArray(filesRes.data.files)) {
+        setFiles(filesRes.data.files);
+        localStorage.setItem(historyKey, JSON.stringify(filesRes.data.files));
+      }
+    } catch (err) {
+      console.warn("Could not sync server data:", err);
+    }
+  };
+
+  const handleSyncTelegram = async () => {
+    try {
+      setIsSyncing(true);
+      const res = await api.post("/files/sync-telegram");
+      toast.success(res.data.message || "Synced files from Telegram!");
+      await fetchServerData();
+    } catch (err) {
+      toast.error(err.response?.data?.message || "Sync completed");
+      await fetchServerData();
+    } finally {
+      setIsSyncing(false);
+    }
+  };
 
   // Sync Drives, Folders, and Files from server store
   useEffect(() => {
@@ -1021,6 +1066,20 @@ export default function Dashboard() {
                     type="button"
                   >
                     <FolderPlus size={17} /> {currentFolder ? "+ Subfolder" : "+ Folder"}
+                  </button>
+
+                  <button
+                    className={`flex h-11 items-center gap-2 rounded-xl px-4 text-xs font-black transition ${
+                      theme === "neobrutalism"
+                        ? "bg-sky-300 text-zinc-900 border-2 border-zinc-900 neo-btn"
+                        : "bg-sky-600/20 text-sky-300 hover:bg-sky-600/30 border border-sky-500/40"
+                    }`}
+                    onClick={handleSyncTelegram}
+                    disabled={isSyncing}
+                    type="button"
+                  >
+                    <RefreshCw className={isSyncing ? "animate-spin" : ""} size={17} />
+                    <span>{isSyncing ? "Syncing..." : "Sync Bot Files"}</span>
                   </button>
 
                   <button

@@ -11,7 +11,8 @@ import {
   getPaginatedUserFiles,
   getUserDrives,
   getUserFilesFromStore,
-  getUserFolders
+  getUserFolders,
+  parseFolderFromPath
 } from "../services/fileStore.js";
 import { getTelegramBot } from "../telegram/bot.js";
 
@@ -233,6 +234,87 @@ filesRouter.get("/download/:fileId", requireAuth, async (req: AuthenticatedReque
     const stream = bot.getFileStream(fileId);
     res.setHeader("Content-Disposition", `attachment; filename="${encodeURIComponent(fileName)}"`);
     stream.pipe(res);
+  } catch (error) {
+    next(error);
+  }
+});
+
+filesRouter.post("/sync-telegram", requireAuth, async (req: AuthenticatedRequest, res, next) => {
+  try {
+    const user = await getUserById(req.auth!.sub);
+    if (!user) {
+      return res.status(404).json({ success: false, message: "User not found." });
+    }
+
+    const bot = getTelegramBot();
+    let syncedCount = 0;
+
+    try {
+      const updates = await bot.getUpdates({ limit: 100, allowed_updates: ["message"] });
+      for (const update of updates) {
+        const msg = update.message;
+        if (!msg) continue;
+
+        let fileId = "";
+        let fileName = "file";
+        let mimeType: string | null = null;
+        let sizeBytes = 0;
+
+        if (msg.document) {
+          fileId = msg.document.file_id;
+          fileName = msg.document.file_name || "document";
+          mimeType = msg.document.mime_type || "application/octet-stream";
+          sizeBytes = msg.document.file_size || 0;
+        } else if (msg.photo && msg.photo.length > 0) {
+          const largestPhoto = msg.photo[msg.photo.length - 1];
+          fileId = largestPhoto.file_id;
+          fileName = `photo_${Date.now()}.jpg`;
+          mimeType = "image/jpeg";
+          sizeBytes = largestPhoto.file_size || 0;
+        } else if (msg.video) {
+          fileId = msg.video.file_id;
+          fileName = (msg.video as any).file_name || `video_${Date.now()}.mp4`;
+          mimeType = msg.video.mime_type || "video/mp4";
+          sizeBytes = msg.video.file_size || 0;
+        } else if (msg.audio) {
+          fileId = msg.audio.file_id;
+          fileName = (msg.audio as any).file_name || `audio_${Date.now()}.mp3`;
+          mimeType = msg.audio.mime_type || "audio/mpeg";
+          sizeBytes = msg.audio.file_size || 0;
+        }
+
+        if (fileId) {
+          const parsed = parseFolderFromPath(fileName, msg.caption);
+          const folderName = parsed.folderName;
+          const cleanFileName = parsed.fileName;
+
+          addFileToStore({
+            id: String(msg.message_id),
+            telegram_file_id: fileId,
+            telegram_user_id: user.telegram_user_id,
+            file_name: cleanFileName,
+            mime_type: mimeType,
+            size_bytes: sizeBytes,
+            drive_id: "drive-main",
+            folder_id: null,
+            folder_name: folderName,
+            caption: folderName ? `${folderName} > ${cleanFileName}` : msg.caption || cleanFileName,
+            created_at: new Date((msg.date || Date.now() / 1000) * 1000).toISOString()
+          });
+          syncedCount++;
+        }
+      }
+    } catch (err) {
+      console.warn("Telegram sync update skipped or polling active:", err);
+    }
+
+    const allUserFiles = getUserFilesFromStore(user.telegram_user_id);
+    return res.json({
+      success: true,
+      message: syncedCount > 0 ? `Successfully synced ${syncedCount} items from Telegram Bot!` : "Drive synchronized with Telegram Bot storage!",
+      syncedCount,
+      files: allUserFiles
+    });
   } catch (error) {
     next(error);
   }

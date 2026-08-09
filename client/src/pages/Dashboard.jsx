@@ -522,8 +522,19 @@ export default function Dashboard() {
           return matchName || matchFolder || matchCaption;
         }
 
-        if (currentFolderId !== null && file.folder_id !== currentFolderId) return false;
-        if (currentFolderId === null && categoryFilter === "all" && file.folder_id !== null) return false;
+        if (currentFolderId !== null) {
+          const currentFolderName = folders.find((f) => f.id === currentFolderId)?.name;
+          const matchFolderId = file.folder_id === currentFolderId;
+          const matchFolderName = currentFolderName && file.folder_name && file.folder_name.toLowerCase() === currentFolderName.toLowerCase();
+          if (!matchFolderId && !matchFolderName) return false;
+        }
+
+        if (currentFolderId === null && categoryFilter === "all") {
+          if (file.folder_id !== null) {
+            const hasFolderRecord = folders.some((f) => f.id === file.folder_id);
+            if (hasFolderRecord) return false;
+          }
+        }
         return true;
       })
       .sort((a, b) => {

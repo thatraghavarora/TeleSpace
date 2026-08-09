@@ -93,8 +93,8 @@ function saveStore(data: StoreData) {
 function ensureUserStoreMigration(store: StoreData, telegramUserId: string): StoreData {
   let modified = false;
 
-  const userFiles = store.files.filter((f) => String(f.telegram_user_id) === String(telegramUserId));
-  if (userFiles.length === 0 && store.files.length > 0) {
+  // Always associate store items with the active telegramUserId if single-user store
+  if (store.files.some((f) => String(f.telegram_user_id) !== String(telegramUserId))) {
     store.files = store.files.map((f) => ({
       ...f,
       telegram_user_id: telegramUserId,
@@ -103,8 +103,7 @@ function ensureUserStoreMigration(store: StoreData, telegramUserId: string): Sto
     modified = true;
   }
 
-  const userFolders = store.folders.filter((f) => String(f.telegram_user_id) === String(telegramUserId));
-  if (userFolders.length === 0 && store.folders.length > 0) {
+  if (store.folders.some((f) => String(f.telegram_user_id) !== String(telegramUserId))) {
     store.folders = store.folders.map((f) => ({
       ...f,
       telegram_user_id: telegramUserId,
@@ -113,13 +112,40 @@ function ensureUserStoreMigration(store: StoreData, telegramUserId: string): Sto
     modified = true;
   }
 
-  const userDrives = store.drives.filter((d) => String(d.telegram_user_id) === String(telegramUserId));
-  if (userDrives.length === 0 && store.drives.length > 0) {
+  if (store.drives.some((d) => String(d.telegram_user_id) !== String(telegramUserId))) {
     store.drives = store.drives.map((d) => ({
       ...d,
       telegram_user_id: telegramUserId
     }));
     modified = true;
+  }
+
+  // Auto-create missing folders for files with folder_name
+  for (const file of store.files) {
+    if (file.folder_name) {
+      let folder = store.folders.find(
+        (f) => String(f.telegram_user_id) === String(telegramUserId) && f.name.toLowerCase() === file.folder_name!.toLowerCase()
+      );
+
+      if (!folder) {
+        folder = {
+          id: `f-auto-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
+          telegram_user_id: telegramUserId,
+          drive_id: file.drive_id || "drive-main",
+          parent_id: null,
+          name: file.folder_name,
+          color: "#3B82F6",
+          created_at: new Date().toISOString()
+        };
+        store.folders.push(folder);
+        modified = true;
+      }
+
+      if (file.folder_id !== folder.id) {
+        file.folder_id = folder.id;
+        modified = true;
+      }
+    }
   }
 
   if (modified) {

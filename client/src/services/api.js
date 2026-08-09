@@ -27,6 +27,10 @@ api.interceptors.response.use(
       localStorage.removeItem("telegram_auth_token");
       localStorage.removeItem("telegram_auth_user");
       setAuthToken(null);
+      // Redirect to login if not already there
+      if (typeof window !== "undefined" && !window.location.pathname.includes("/login")) {
+        window.location.href = "/login";
+      }
     }
     return Promise.reject(error);
   }

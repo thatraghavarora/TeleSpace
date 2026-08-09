@@ -185,8 +185,10 @@ app.use((err: unknown, _req: express.Request, res: express.Response, _next: expr
   res.status(500).json({ success: false, message: "Something went wrong." });
 });
 
-app.listen(config.port, "0.0.0.0", () => {
-  console.log(`API & Web App listening on http://0.0.0.0:${config.port}`);
+const PORT = process.env.PORT ? parseInt(process.env.PORT, 10) : config.port || 4000;
+
+app.listen(PORT, "0.0.0.0", () => {
+  console.log(`API & Web App listening on http://0.0.0.0:${PORT}`);
   startTelegramBot();
   console.log("Telegram bot polling started.");
 });

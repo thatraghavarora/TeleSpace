@@ -178,7 +178,7 @@ filesRouter.post("/upload", requireAuth, upload.single("file"), async (req: Auth
       (sent as any).video?.file_id ||
       null;
 
-    const baseURL = process.env.VITE_API_URL || "http://localhost:4000";
+    const baseURL = process.env.VITE_API_URL || "https://telespace-vdru.onrender.com";
 
     const fileItem = {
       id: String(sent.message_id),

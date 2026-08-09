@@ -146,6 +146,7 @@ export async function getStatus(rawUsername: string) {
 
   let telegramUserId: string | null = null;
 
+  // 1. Try Supabase
   try {
     const { data: verification, error } = await supabase
       .from("telegram_verifications")
@@ -163,10 +164,21 @@ export async function getStatus(rawUsername: string) {
     // Supabase fallback
   }
 
+  // 2. Try in-memory
   if (!telegramUserId) {
     const memAttempt = memoryVerifications.get(username);
     if (memAttempt && memAttempt.verified && memAttempt.telegram_user_id) {
       telegramUserId = memAttempt.telegram_user_id;
+    }
+  }
+
+  // 3. Try memoryUsers by username (set by bot /start)
+  if (!telegramUserId) {
+    for (const u of memoryUsers.values()) {
+      if (`@${u.telegram_username}` === username || u.telegram_username === withoutAt(username)) {
+        telegramUserId = u.telegram_user_id;
+        break;
+      }
     }
   }
 

@@ -2,8 +2,8 @@ import axios from "axios";
 
 const getBaseURL = () => {
   if (import.meta.env.VITE_API_URL) return import.meta.env.VITE_API_URL;
-  if (typeof window !== "undefined" && window.location.hostname.includes("railway.app")) {
-    return "https://server-production-dd00.up.railway.app";
+  if (typeof window !== "undefined" && window.location.hostname.includes("onrender.com")) {
+    return "https://telespace-vdru.onrender.com";
   }
   return "/api";
 };

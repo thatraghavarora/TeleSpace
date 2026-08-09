@@ -23,6 +23,7 @@ export interface StoredFile {
   mime_type: string | null;
   size_bytes: number;
   data_url?: string | null;
+  preview_url?: string | null;
   caption?: string | null;
   drive_id?: string;
   folder_id?: string | null;
@@ -59,6 +60,77 @@ export function parseFolderFromPath(rawName: string, caption?: string | null) {
 function loadStore(telegramUserId?: string): StoreData {
   const key = telegramUserId || "global";
   if (!memoryStore.has(key)) {
+    const initialFolders: StoredFolder[] = [
+      {
+        id: "f-test-main",
+        telegram_user_id: key,
+        drive_id: "drive-main",
+        parent_id: null,
+        name: "test",
+        color: "#3B82F6",
+        created_at: "2026-08-09T17:34:00.000Z"
+      }
+    ];
+
+    const initialFiles: StoredFile[] = [
+      {
+        id: "187",
+        telegram_file_id: "BQACAgUAAxkDAAO7ani7zptVzXH6fxX5LW5nP-BxUBoAAo4dAAJ7gMlXGVcv94gRmdE9BA",
+        telegram_user_id: key,
+        file_name: "Screenshot From 2026-07-07 15-53-29.png",
+        mime_type: "image/png",
+        size_bytes: 550128,
+        preview_url: "/files/preview/BQACAgUAAxkDAAO7ani7zptVzXH6fxX5LW5nP-BxUBoAAo4dAAJ7gMlXGVcv94gRmdE9BA?mime=image%2Fpng",
+        caption: "test > Screenshot From 2026-07-07 15-53-29.png",
+        drive_id: "drive-main",
+        folder_id: "f-test-main",
+        folder_name: "test",
+        created_at: "2026-08-09T17:41:35.311Z"
+      },
+      {
+        id: "184",
+        telegram_file_id: "BQACAgUAAxkDAAO4ani6advwWq8hjBPyIH1uysnfmu4AAowdAAJ7gMlXwz6z0kG-lO89BA",
+        telegram_user_id: key,
+        file_name: "Screenshot From 2026-07-08 10-36-59.png",
+        mime_type: "image/png",
+        size_bytes: 132273,
+        preview_url: "/files/preview/BQACAgUAAxkDAAO4ani6advwWq8hjBPyIH1uysnfmu4AAowdAAJ7gMlXwz6z0kG-lO89BA?mime=image%2Fpng",
+        caption: "Saved from your file manager: Screenshot From 2026-07-08 10-36-59.png in test",
+        drive_id: "drive-main",
+        folder_id: "f-test-main",
+        folder_name: "test",
+        created_at: "2026-08-09T17:35:37.620Z"
+      },
+      {
+        id: "181",
+        telegram_file_id: "BQACAgUAAxkDAAO1ani6I9h9tj_EiaMNudK92um1ftIAAosdAAJ7gMlXpdrk1tS1RG09BA",
+        telegram_user_id: key,
+        file_name: "Screenshot From 2026-07-07 15-53-29.png",
+        mime_type: "image/png",
+        size_bytes: 550128,
+        preview_url: "/files/preview/BQACAgUAAxkDAAO1ani6I9h9tj_EiaMNudK92um1ftIAAosdAAJ7gMlXpdrk1tS1RG09BA?mime=image%2Fpng",
+        caption: "Saved from your file manager: Screenshot From 2026-07-07 15-53-29.png in test",
+        drive_id: "drive-main",
+        folder_id: "f-test-main",
+        folder_name: "test",
+        created_at: "2026-08-09T17:34:28.192Z"
+      },
+      {
+        id: "180",
+        telegram_file_id: "BQACAgUAAxkDAAO0ani6AzAVuI3pqxUkO0FswqKvoFcAAoodAAJ7gMlXUvkCU1VgXC89BA",
+        telegram_user_id: key,
+        file_name: "Screenshot From 2026-07-07 15-53-29.png",
+        mime_type: "image/png",
+        size_bytes: 550128,
+        preview_url: "/files/preview/BQACAgUAAxkDAAO0ani6AzAVuI3pqxUkO0FswqKvoFcAAoodAAJ7gMlXUvkCU1VgXC89BA?mime=image%2Fpng",
+        caption: "Saved from your file manager: Screenshot From 2026-07-07 15-53-29.png",
+        drive_id: "drive-main",
+        folder_id: null,
+        folder_name: null,
+        created_at: "2026-08-09T17:33:56.263Z"
+      }
+    ];
+
     memoryStore.set(key, {
       drives: [
         {
@@ -68,8 +140,8 @@ function loadStore(telegramUserId?: string): StoreData {
           created_at: new Date().toISOString()
         }
       ],
-      folders: [],
-      files: []
+      folders: initialFolders,
+      files: initialFiles
     });
   }
   return memoryStore.get(key)!;

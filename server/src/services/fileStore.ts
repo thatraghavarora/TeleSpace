@@ -1,8 +1,3 @@
-import fs from "fs";
-import path from "path";
-
-const FILE_STORE_PATH = path.join(process.cwd(), "file_store.json");
-
 export interface StoredDrive {
   id: string;
   telegram_user_id: string;
@@ -41,6 +36,9 @@ export interface StoreData {
   files: StoredFile[];
 }
 
+// In-Memory Storage Engine (ZERO LOCAL DISK DATABASE FILES)
+const memoryStore = new Map<string, StoreData>();
+
 export function parseFolderFromPath(rawName: string, caption?: string | null) {
   let folderName: string | null = null;
   let fileName = rawName;
@@ -58,42 +56,33 @@ export function parseFolderFromPath(rawName: string, caption?: string | null) {
   return { folderName, fileName };
 }
 
-function loadStore(): StoreData {
-  try {
-    if (!fs.existsSync(FILE_STORE_PATH)) {
-      const initial: StoreData = { drives: [], folders: [], files: [] };
-      fs.writeFileSync(FILE_STORE_PATH, JSON.stringify(initial, null, 2));
-      return initial;
-    }
-    const content = fs.readFileSync(FILE_STORE_PATH, "utf-8");
-    const parsed = JSON.parse(content || "{}");
-
-    // Compatibility check if store was previously array
-    if (Array.isArray(parsed)) {
-      return { drives: [], folders: [], files: parsed };
-    }
-    return {
-      drives: parsed.drives || [],
-      folders: parsed.folders || [],
-      files: parsed.files || []
-    };
-  } catch {
-    return { drives: [], folders: [], files: [] };
+function loadStore(telegramUserId?: string): StoreData {
+  const key = telegramUserId || "global";
+  if (!memoryStore.has(key)) {
+    memoryStore.set(key, {
+      drives: [
+        {
+          id: "drive-main",
+          telegram_user_id: key,
+          name: "Main Drive",
+          created_at: new Date().toISOString()
+        }
+      ],
+      folders: [],
+      files: []
+    });
   }
+  return memoryStore.get(key)!;
 }
 
-function saveStore(data: StoreData) {
-  try {
-    fs.writeFileSync(FILE_STORE_PATH, JSON.stringify(data, null, 2));
-  } catch (err) {
-    console.error("Failed to save file store:", err);
-  }
+function saveStore(data: StoreData, telegramUserId?: string) {
+  const key = telegramUserId || "global";
+  memoryStore.set(key, data);
 }
 
 function ensureUserStoreMigration(store: StoreData, telegramUserId: string): StoreData {
   let modified = false;
 
-  // Always associate store items with the active telegramUserId if single-user store
   if (store.files.some((f) => String(f.telegram_user_id) !== String(telegramUserId))) {
     store.files = store.files.map((f) => ({
       ...f,
@@ -120,7 +109,6 @@ function ensureUserStoreMigration(store: StoreData, telegramUserId: string): Sto
     modified = true;
   }
 
-  // Auto-create missing folders for files with folder_name
   for (const file of store.files) {
     if (file.folder_name) {
       let folder = store.folders.find(
@@ -149,14 +137,14 @@ function ensureUserStoreMigration(store: StoreData, telegramUserId: string): Sto
   }
 
   if (modified) {
-    saveStore(store);
+    saveStore(store, telegramUserId);
   }
   return store;
 }
 
 // Drives Methods
 export function getUserDrives(telegramUserId: string): StoredDrive[] {
-  let store = loadStore();
+  let store = loadStore(telegramUserId);
   store = ensureUserStoreMigration(store, telegramUserId);
   const userDrives = store.drives.filter((d) => String(d.telegram_user_id) === String(telegramUserId));
   if (userDrives.length === 0) {
@@ -167,30 +155,30 @@ export function getUserDrives(telegramUserId: string): StoredDrive[] {
       created_at: new Date().toISOString()
     };
     store.drives.push(defaultDrive);
-    saveStore(store);
+    saveStore(store, telegramUserId);
     return [defaultDrive];
   }
   return userDrives;
 }
 
 export function createDriveInStore(drive: StoredDrive): StoredDrive {
-  const store = loadStore();
+  const store = loadStore(drive.telegram_user_id);
   store.drives.push(drive);
-  saveStore(store);
+  saveStore(store, drive.telegram_user_id);
   return drive;
 }
 
 export function deleteDriveInStore(driveId: string, telegramUserId: string) {
-  const store = loadStore();
+  const store = loadStore(telegramUserId);
   store.drives = store.drives.filter((d) => d.id !== driveId || String(d.telegram_user_id) !== String(telegramUserId));
   store.folders = store.folders.filter((f) => f.drive_id !== driveId);
   store.files = store.files.filter((f) => f.drive_id !== driveId);
-  saveStore(store);
+  saveStore(store, telegramUserId);
 }
 
 // Folders Methods
 export function getUserFolders(telegramUserId: string, driveId?: string): StoredFolder[] {
-  let store = loadStore();
+  let store = loadStore(telegramUserId);
   store = ensureUserStoreMigration(store, telegramUserId);
   return store.folders.filter((f) => {
     const matchUser = String(f.telegram_user_id) === String(telegramUserId);
@@ -201,28 +189,27 @@ export function getUserFolders(telegramUserId: string, driveId?: string): Stored
 }
 
 export function createFolderInStore(folder: StoredFolder): StoredFolder {
-  const store = loadStore();
+  const store = loadStore(folder.telegram_user_id);
   store.folders.push(folder);
-  saveStore(store);
+  saveStore(store, folder.telegram_user_id);
   return folder;
 }
 
 export function deleteFolderInStore(folderId: string, telegramUserId: string) {
-  const store = loadStore();
+  const store = loadStore(telegramUserId);
   store.folders = store.folders.filter((f) => f.id !== folderId || String(f.telegram_user_id) !== String(telegramUserId));
   store.files = store.files.map((file) => (file.folder_id === folderId ? { ...file, folder_id: null } : file));
-  saveStore(store);
+  saveStore(store, telegramUserId);
 }
 
-// Files & Paginated Search Methods (Implement A & B)
+// Files & Paginated Search Methods
 export function addFileToStore(file: StoredFile) {
-  const store = loadStore();
+  const store = loadStore(file.telegram_user_id);
   const parsed = parseFolderFromPath(file.file_name, file.caption);
 
   let folderId = file.folder_id || null;
   const folderName = file.folder_name || parsed.folderName || null;
 
-  // Auto-resolve folder ID if folderName is present
   if (folderName && !folderId) {
     const existing = store.folders.find(
       (f) => String(f.telegram_user_id) === String(file.telegram_user_id) && f.name.toLowerCase() === folderName.toLowerCase()
@@ -255,7 +242,7 @@ export function addFileToStore(file: StoredFile) {
 
   store.files = store.files.filter((f) => f.id !== normalizedFile.id && f.telegram_file_id !== normalizedFile.telegram_file_id);
   store.files.unshift(normalizedFile);
-  saveStore(store);
+  saveStore(store, file.telegram_user_id);
 }
 
 export function getPaginatedUserFiles(
@@ -268,7 +255,7 @@ export function getPaginatedUserFiles(
     limit?: number;
   }
 ) {
-  let store = loadStore();
+  let store = loadStore(telegramUserId);
   store = ensureUserStoreMigration(store, telegramUserId);
   const { drive_id, folder_id, query, page = 1, limit = 50 } = queryOptions;
 
@@ -305,7 +292,7 @@ export function getPaginatedUserFiles(
 }
 
 export function getUserFilesFromStore(telegramUserId: string): StoredFile[] {
-  let store = loadStore();
+  let store = loadStore(telegramUserId);
   store = ensureUserStoreMigration(store, telegramUserId);
   return store.files.filter((f) => String(f.telegram_user_id) === String(telegramUserId));
 }

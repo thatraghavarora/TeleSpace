@@ -4,6 +4,11 @@
 
 * {
   box-sizing: border-box;
+  -webkit-tap-highlight-color: transparent;
+}
+
+html {
+  scroll-behavior: smooth;
 }
 
 body {
@@ -15,23 +20,31 @@ body {
   font-family:
     Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
     sans-serif;
+  overflow-x: hidden;
 }
 
 button,
-input {
+input,
+select {
   font: inherit;
 }
 
+/* ── Auth card page shell ── */
 .page-shell {
   min-height: 100vh;
   display: grid;
   place-items: center;
-  padding: 24px;
+  padding: 16px;
   background:
     radial-gradient(circle at 15% 10%, rgba(56, 189, 248, 0.18), transparent 32%),
     linear-gradient(135deg, #0f172a 0%, #111827 52%, #0b1120 100%);
 }
 
+@media (min-width: 640px) {
+  .page-shell { padding: 24px; }
+}
+
+/* ── Spinner ── */
 .spinner {
   width: 18px;
   height: 18px;
@@ -42,38 +55,67 @@ input {
 }
 
 @keyframes spin {
-  to {
-    transform: rotate(360deg);
-  }
+  to { transform: rotate(360deg); }
 }
 
-/* Refined Clean NeoBrutalism Shadows & Buttons */
-.neo-shadow {
-  box-shadow: 3px 3px 0px 0px #18181b;
-}
-
-.neo-shadow-lg {
-  box-shadow: 5px 5px 0px 0px #18181b;
-}
-
-.neo-shadow-sm {
-  box-shadow: 2px 2px 0px 0px #18181b;
-}
+/* ── NeoBrutalism helpers ── */
+.neo-shadow   { box-shadow: 3px 3px 0px 0px #18181b; }
+.neo-shadow-lg{ box-shadow: 5px 5px 0px 0px #18181b; }
+.neo-shadow-sm{ box-shadow: 2px 2px 0px 0px #18181b; }
 
 .neo-btn {
   border: 2px solid #18181b;
   box-shadow: 3px 3px 0px 0px #18181b;
   transition: all 0.15s cubic-bezier(0.16, 1, 0.3, 1);
 }
+.neo-btn:hover  { transform: translate(-1px,-1px); box-shadow: 4px 4px 0px 0px #18181b; }
+.neo-btn:active { transform: translate(1px,1px);   box-shadow: 1px 1px 0px 0px #18181b; }
 
-.neo-btn:hover {
-  transform: translate(-1px, -1px);
-  box-shadow: 4px 4px 0px 0px #18181b;
+/* ── Responsive table wrapper ── */
+.table-scroll {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  width: 100%;
 }
 
-.neo-btn:active {
-  transform: translate(1px, 1px);
-  box-shadow: 1px 1px 0px 0px #18181b;
+/* ── Responsive file/folder grid ── */
+.file-grid {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(2, 1fr);
+}
+@media (min-width: 480px) { .file-grid { grid-template-columns: repeat(3, 1fr); } }
+@media (min-width: 768px) { .file-grid { grid-template-columns: repeat(4, 1fr); } }
+@media (min-width: 1024px){ .file-grid { grid-template-columns: repeat(5, 1fr); } }
+@media (min-width: 1280px){ .file-grid { grid-template-columns: repeat(6, 1fr); } }
+
+/* ── Mobile touch targets (min 44px) ── */
+.touch-target {
+  min-height: 44px;
+  min-width: 44px;
 }
 
+/* ── Truncate long filenames ── */
+.filename-truncate {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 100%;
+}
 
+/* ── Modal responsive ── */
+.modal-sheet {
+  width: calc(100vw - 32px);
+  max-width: 480px;
+  max-height: 90vh;
+  overflow-y: auto;
+}
+
+/* ── Sidebar responsive ── */
+@media (max-width: 1023px) {
+  .sidebar-overlay-open { overflow: hidden; }
+}
+
+/* ── Hide scrollbar but keep scroll ── */
+.no-scrollbar::-webkit-scrollbar { display: none; }
+.no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }

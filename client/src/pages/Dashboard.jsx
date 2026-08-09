@@ -57,7 +57,7 @@ function getFileSrc(file) {
   if (file.previewUrl) return file.previewUrl;
   if (file.url) return file.url;
   if (file.telegram_file_id) {
-    const baseURL = import.meta.env.VITE_API_URL || "http://localhost:4000";
+    const baseURL = import.meta.env.VITE_API_URL || "https://telespace-vdru.onrender.com";
     return `${baseURL}/files/preview/${file.telegram_file_id}?mime=${encodeURIComponent(file.mime_type || "image/png")}`;
   }
   return "";
@@ -1121,13 +1121,13 @@ export default function Dashboard() {
                     </div>
                   </div>
                 ) : (
-                  <div className="overflow-x-auto">
-                    <table className="w-full text-left text-xs border-collapse">
+                  <div className="table-scroll">
+                    <table className="w-full min-w-[540px] text-left text-xs border-collapse">
                       <thead>
                         <tr className={`${themeStyles.tableHeader} text-[11px] uppercase tracking-wider`}>
                           <th className="py-3 px-4 font-black">Name</th>
-                          <th className="py-3 px-4 font-black">Size / Items</th>
-                          <th className="py-3 px-4 font-black">Modified</th>
+                          <th className="py-3 px-4 font-black hidden sm:table-cell">Size / Items</th>
+                          <th className="py-3 px-4 font-black hidden md:table-cell">Modified</th>
                           <th className="py-3 px-4 font-black text-right">Actions</th>
                         </tr>
                       </thead>
@@ -1147,10 +1147,10 @@ export default function Dashboard() {
                                 </span>
                                 <span className="text-sm font-bold text-blue-600 dark:text-blue-400 hover:underline">{folder.name}</span>
                               </td>
-                              <td className="py-3.5 px-4 font-semibold opacity-70">
+                              <td className="py-3.5 px-4 font-semibold opacity-70 hidden sm:table-cell">
                                 {count} item{count === 1 ? "" : "s"}
                               </td>
-                              <td className="py-3.5 px-4 opacity-60">
+                              <td className="py-3.5 px-4 opacity-60 hidden md:table-cell">
                                 {new Date(folder.created_at).toLocaleDateString()}
                               </td>
                               <td className="py-3.5 px-4 text-right space-x-2">
@@ -1197,10 +1197,10 @@ export default function Dashboard() {
                                   <p className="text-[10px] opacity-60 truncate">{file.caption || `Saved from your file manager: ${file.file_name}`}</p>
                                 </div>
                               </td>
-                              <td className="py-3.5 px-4 font-bold">
+                              <td className="py-3.5 px-4 font-bold hidden sm:table-cell">
                                 {sizeText(file.size_bytes)}
                               </td>
-                              <td className="py-3.5 px-4 opacity-60">
+                              <td className="py-3.5 px-4 opacity-60 hidden md:table-cell">
                                 {new Date(file.created_at).toLocaleDateString()}
                               </td>
                               <td className="py-3.5 px-4 text-right space-x-1.5">

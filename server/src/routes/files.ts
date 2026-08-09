@@ -169,11 +169,6 @@ filesRouter.post("/upload", requireAuth, upload.single("file"), async (req: Auth
 
     const telegramFileId = sent.document?.file_id || (sent as any).audio?.file_id || (sent as any).video?.file_id || null;
 
-    let dataUrl: string | null = null;
-    if (req.file.mimetype.startsWith("image/") && req.file.size < 5 * 1024 * 1024) {
-      dataUrl = `data:${req.file.mimetype};base64,${req.file.buffer.toString("base64")}`;
-    }
-
     const baseURL = process.env.VITE_API_URL || "http://localhost:4000";
 
     const fileItem = {
@@ -183,8 +178,8 @@ filesRouter.post("/upload", requireAuth, upload.single("file"), async (req: Auth
       file_name: req.file.originalname,
       mime_type: req.file.mimetype || null,
       size_bytes: req.file.size,
-      data_url: dataUrl,
-      preview_url: telegramFileId ? `${baseURL}/files/preview/${telegramFileId}?mime=${encodeURIComponent(req.file.mimetype)}` : dataUrl,
+      data_url: null,
+      preview_url: telegramFileId ? `${baseURL}/files/preview/${telegramFileId}?mime=${encodeURIComponent(req.file.mimetype)}` : null,
       caption: captionText,
       drive_id: req.body.drive_id || "drive-main",
       folder_id: req.body.folder_id || null,

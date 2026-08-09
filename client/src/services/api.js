@@ -19,3 +19,16 @@ export function setAuthToken(token) {
     delete api.defaults.headers.common.Authorization;
   }
 }
+
+api.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    if (error.response && error.response.status === 401) {
+      if (typeof window !== "undefined" && !window.location.pathname.includes("/login")) {
+        localStorage.removeItem("auth-storage");
+        window.location.href = "/login";
+      }
+    }
+    return Promise.reject(error);
+  }
+);

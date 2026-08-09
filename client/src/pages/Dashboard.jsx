@@ -471,21 +471,7 @@ export default function Dashboard() {
       setShowUploadModal(false);
       toast.success(`File uploaded!`);
     } catch (error) {
-      const fallbackFile = {
-        id: `local-${Date.now()}`,
-        file_name: file.name,
-        mime_type: file.type || "application/octet-stream",
-        size_bytes: file.size,
-        created_at: new Date().toISOString(),
-        drive_id: currentDriveId,
-        folder_id: destFolderId,
-        folder_name: destFolder ? destFolder.name : null,
-        caption: `Saved from your file manager: ${file.name}${destFolder ? ` in ${destFolder.name}` : ""}`,
-        data_url: dataUrl
-      };
-      saveFiles([fallbackFile, ...files]);
-      setShowUploadModal(false);
-      toast.success("Saved to file manager!");
+      toast.error(error.response?.data?.message || "Upload failed. Please open Telegram and press /start on your bot first.");
     } finally {
       setUploading(false);
     }

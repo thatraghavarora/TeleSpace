@@ -183,16 +183,28 @@ filesRouter.post("/upload", requireAuth, upload.single("file"), async (req: Auth
       }
     } catch (sendErr) {
       console.warn("User bot upload fallback to default bot:", sendErr);
-      const defaultBot = getTelegramBot();
-      if (req.file.mimetype.startsWith("image/")) {
-        try {
-          sent = await defaultBot.sendPhoto(targetChatId, req.file.buffer, { caption: captionText }, { filename: req.file.originalname, contentType: req.file.mimetype });
-        } catch {
+      try {
+        const defaultBot = getTelegramBot();
+        if (req.file.mimetype.startsWith("image/")) {
+          try {
+            sent = await defaultBot.sendPhoto(targetChatId, req.file.buffer, { caption: captionText }, { filename: req.file.originalname, contentType: req.file.mimetype });
+          } catch {
+            sent = await defaultBot.sendDocument(targetChatId, req.file.buffer, { caption: captionText }, { filename: req.file.originalname, contentType: req.file.mimetype });
+          }
+        } else {
           sent = await defaultBot.sendDocument(targetChatId, req.file.buffer, { caption: captionText }, { filename: req.file.originalname, contentType: req.file.mimetype });
         }
-      } else {
-        sent = await defaultBot.sendDocument(targetChatId, req.file.buffer, { caption: captionText }, { filename: req.file.originalname, contentType: req.file.mimetype });
+      } catch (fallbackErr) {
+        console.error("Default bot upload failed:", fallbackErr);
       }
+    }
+
+    if (!sent) {
+      const botUsername = (user as any).botUsername || process.env.TELEGRAM_BOT_USERNAME || "FreeAuth_Bot";
+      return res.status(400).json({
+        success: false,
+        message: `Telegram delivery failed. Please open Telegram, search @${botUsername.replace(/^@/, "")} and press /start first!`
+      });
     }
 
     const telegramFileId =

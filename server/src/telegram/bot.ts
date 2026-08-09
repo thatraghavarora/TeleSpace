@@ -106,7 +106,11 @@ export function startTelegramBot() {
   return bot;
 }
 
-export function getTelegramBot() {
+export function getTelegramBot(customToken?: string | null) {
+  if (customToken && customToken.trim()) {
+    return new TelegramBot(customToken.trim());
+  }
+
   if (!activeBot) {
     throw new Error("Telegram bot is not ready.");
   }

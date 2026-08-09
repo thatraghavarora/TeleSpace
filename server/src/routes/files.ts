@@ -161,14 +161,32 @@ filesRouter.post("/upload", requireAuth, upload.single("file"), async (req: Auth
     const folderName = req.body.folder_name ? req.body.folder_name.trim() : null;
     const captionText = folderName ? `${folderName} > ${req.file.originalname}` : req.file.originalname;
 
-    const sent = await getTelegramBot().sendDocument(
-      user.telegram_user_id,
-      req.file.buffer,
-      { caption: captionText },
-      { filename: req.file.originalname, contentType: req.file.mimetype }
-    );
+    const bot = getTelegramBot((user as any).botToken);
+    let sent: any = null;
 
-    const telegramFileId = sent.document?.file_id || (sent as any).audio?.file_id || (sent as any).video?.file_id || null;
+    try {
+      sent = await bot.sendDocument(
+        user.telegram_user_id,
+        req.file.buffer,
+        { caption: captionText },
+        { filename: req.file.originalname, contentType: req.file.mimetype }
+      );
+    } catch (sendErr) {
+      console.warn("User bot upload fallback to default bot:", sendErr);
+      sent = await getTelegramBot().sendDocument(
+        user.telegram_user_id,
+        req.file.buffer,
+        { caption: captionText },
+        { filename: req.file.originalname, contentType: req.file.mimetype }
+      );
+    }
+
+    const telegramFileId =
+      sent.document?.file_id ||
+      (sent.photo && sent.photo.length > 0 ? sent.photo[sent.photo.length - 1].file_id : null) ||
+      (sent as any).audio?.file_id ||
+      (sent as any).video?.file_id ||
+      null;
 
     const baseURL = process.env.VITE_API_URL || "http://localhost:4000";
 

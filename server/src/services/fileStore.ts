@@ -90,9 +90,48 @@ function saveStore(data: StoreData) {
   }
 }
 
+function ensureUserStoreMigration(store: StoreData, telegramUserId: string): StoreData {
+  let modified = false;
+
+  const userFiles = store.files.filter((f) => String(f.telegram_user_id) === String(telegramUserId));
+  if (userFiles.length === 0 && store.files.length > 0) {
+    store.files = store.files.map((f) => ({
+      ...f,
+      telegram_user_id: telegramUserId,
+      drive_id: f.drive_id || "drive-main"
+    }));
+    modified = true;
+  }
+
+  const userFolders = store.folders.filter((f) => String(f.telegram_user_id) === String(telegramUserId));
+  if (userFolders.length === 0 && store.folders.length > 0) {
+    store.folders = store.folders.map((f) => ({
+      ...f,
+      telegram_user_id: telegramUserId,
+      drive_id: f.drive_id || "drive-main"
+    }));
+    modified = true;
+  }
+
+  const userDrives = store.drives.filter((d) => String(d.telegram_user_id) === String(telegramUserId));
+  if (userDrives.length === 0 && store.drives.length > 0) {
+    store.drives = store.drives.map((d) => ({
+      ...d,
+      telegram_user_id: telegramUserId
+    }));
+    modified = true;
+  }
+
+  if (modified) {
+    saveStore(store);
+  }
+  return store;
+}
+
 // Drives Methods
 export function getUserDrives(telegramUserId: string): StoredDrive[] {
-  const store = loadStore();
+  let store = loadStore();
+  store = ensureUserStoreMigration(store, telegramUserId);
   const userDrives = store.drives.filter((d) => String(d.telegram_user_id) === String(telegramUserId));
   if (userDrives.length === 0) {
     const defaultDrive: StoredDrive = {
@@ -125,7 +164,8 @@ export function deleteDriveInStore(driveId: string, telegramUserId: string) {
 
 // Folders Methods
 export function getUserFolders(telegramUserId: string, driveId?: string): StoredFolder[] {
-  const store = loadStore();
+  let store = loadStore();
+  store = ensureUserStoreMigration(store, telegramUserId);
   return store.folders.filter((f) => {
     const matchUser = String(f.telegram_user_id) === String(telegramUserId);
     if (!matchUser) return false;
@@ -202,7 +242,8 @@ export function getPaginatedUserFiles(
     limit?: number;
   }
 ) {
-  const store = loadStore();
+  let store = loadStore();
+  store = ensureUserStoreMigration(store, telegramUserId);
   const { drive_id, folder_id, query, page = 1, limit = 50 } = queryOptions;
 
   let filtered = store.files.filter((f) => String(f.telegram_user_id) === String(telegramUserId));
@@ -238,6 +279,7 @@ export function getPaginatedUserFiles(
 }
 
 export function getUserFilesFromStore(telegramUserId: string): StoredFile[] {
-  const store = loadStore();
+  let store = loadStore();
+  store = ensureUserStoreMigration(store, telegramUserId);
   return store.files.filter((f) => String(f.telegram_user_id) === String(telegramUserId));
 }

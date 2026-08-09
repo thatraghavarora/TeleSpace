@@ -24,10 +24,9 @@ api.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error.response && error.response.status === 401) {
-      if (typeof window !== "undefined" && !window.location.pathname.includes("/login")) {
-        localStorage.removeItem("auth-storage");
-        window.location.href = "/login";
-      }
+      localStorage.removeItem("telegram_auth_token");
+      localStorage.removeItem("telegram_auth_user");
+      setAuthToken(null);
     }
     return Promise.reject(error);
   }

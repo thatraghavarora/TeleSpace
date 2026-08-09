@@ -1,4 +1,4 @@
-import { Bot, HelpCircle, Key, Send, ShieldCheck, Sparkles } from "lucide-react";
+import { Bot, CheckCircle, HelpCircle, Key, Loader2, Send, ShieldCheck, Sparkles } from "lucide-react";
 import { useState } from "react";
 import toast from "react-hot-toast";
 import { Link, useNavigate } from "react-router-dom";
@@ -13,6 +13,8 @@ export default function Login() {
   const [botToken, setBotToken] = useState("");
   const [showBotHelp, setShowBotHelp] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [waitingVerify, setWaitingVerify] = useState(false);
+  const [pendingUsername, setPendingUsernameLocal] = useState("");
   const setPending = useAuthStore((state) => state.setPending);
   const updateBotCredentials = useAuthStore((state) => state.updateBotCredentials);
   const setSession = useAuthStore((state) => state.setSession);
@@ -44,33 +46,44 @@ export default function Login() {
         toast.success(`Connected to ${botRes.data.bot.first_name} (${validatedBotUsername})!`);
       }
 
-      const { data } = await api.post("/auth/request", { username: normalized });
-      
-      setPending({
-        username: data.username,
-        expires_at: data.expires_at
-      });
+      await api.post("/auth/request", { username: normalized });
 
-      // Directly authorize user & save bot token
-      const mockUser = {
-        id: `user-${normalized.replace("@", "")}`,
-        username: normalized,
-        botToken: botToken.trim() || null,
-        botUsername: validatedBotUsername || null
-      };
+      setPending({ username: normalized, expires_at: null });
+      setPendingUsernameLocal(normalized);
 
-      updateBotCredentials({
-        botToken: botToken.trim() || null,
-        botUsername: validatedBotUsername || null
-      });
+      if (botToken.trim()) {
+        updateBotCredentials({
+          botToken: botToken.trim(),
+          botUsername: validatedBotUsername || null
+        });
+      }
 
-      setSession({
-        token: `token-${Date.now()}`,
-        user: mockUser
-      });
+      setWaitingVerify(true);
+      toast.success("Now open Telegram → press /start on @FreeAuth_Bot to verify!");
 
-      toast.success("Welcome to TeleSpace Unlimited Cloud!");
-      navigate("/dashboard");
+      // Poll /auth/status until verified (max 5 min)
+      let attempts = 0;
+      const maxAttempts = 60; // 60 × 5s = 5 minutes
+      const interval = setInterval(async () => {
+        attempts++;
+        try {
+          const { data } = await api.get(`/auth/status/${normalized.replace("@", "")}`);
+          if (data?.verified && data?.token) {
+            clearInterval(interval);
+            setSession({ token: data.token, user: data.user });
+            toast.success("✅ Verified! Welcome to TeleSpace!");
+            navigate("/dashboard");
+          }
+        } catch {
+          // keep polling
+        }
+        if (attempts >= maxAttempts) {
+          clearInterval(interval);
+          setWaitingVerify(false);
+          toast.error("Verification timed out. Please try again.");
+        }
+      }, 5000);
+
     } catch (error) {
       toast.error(error.response?.data?.message || "Could not start verification.");
     } finally {
@@ -158,14 +171,29 @@ export default function Login() {
         )}
 
         <div className="pt-2">
-          <button
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-sky-500 to-blue-600 font-bold text-white shadow-lg shadow-sky-500/25 transition hover:brightness-110 active:scale-98 disabled:cursor-not-allowed disabled:opacity-60"
-            disabled={loading}
-            type="submit"
-          >
-            {loading ? <span className="spinner" /> : <ShieldCheck size={18} />}
-            <span>Connect & Launch Storage</span>
-          </button>
+          {waitingVerify ? (
+            <div className="rounded-2xl border border-sky-500/40 bg-sky-500/10 p-5 text-center">
+              <div className="mb-3 flex items-center justify-center gap-2 text-sky-300">
+                <Loader2 size={20} className="animate-spin" />
+                <span className="font-bold">Waiting for Telegram Verification...</span>
+              </div>
+              <p className="mb-3 text-xs text-slate-400">
+                Open Telegram, search <strong className="text-sky-300">@FreeAuth_Bot</strong> and press <code className="rounded bg-slate-800 px-1 py-0.5 text-sky-300">/start</code>
+              </p>
+              <p className="text-xs text-slate-500">
+                Verifying <strong className="text-white">{pendingUsername}</strong>
+              </p>
+            </div>
+          ) : (
+            <button
+              className="flex h-12 w-full items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-sky-500 to-blue-600 font-bold text-white shadow-lg shadow-sky-500/25 transition hover:brightness-110 active:scale-98 disabled:cursor-not-allowed disabled:opacity-60"
+              disabled={loading}
+              type="submit"
+            >
+              {loading ? <Loader2 size={18} className="animate-spin" /> : <ShieldCheck size={18} />}
+              <span>Connect &amp; Launch Storage</span>
+            </button>
+          )}
         </div>
       </form>
     </AuthCard>

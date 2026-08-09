@@ -14,11 +14,19 @@ import { startTelegramBot } from "./telegram/bot.js";
 const app = express();
 
 app.set("trust proxy", 1);
-app.use(helmet({ contentSecurityPolicy: false }));
+app.use(
+  helmet({
+    contentSecurityPolicy: false,
+    crossOriginResourcePolicy: false,
+    crossOriginOpenerPolicy: false
+  })
+);
 app.use(
   cors({
     origin: true,
-    credentials: true
+    credentials: true,
+    methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With", "Accept"]
   })
 );
 app.use(express.json({ limit: "32kb" }));
@@ -28,10 +36,15 @@ app.get("/health", (_req, res) => {
 });
 
 app.use("/auth", authRouter);
+app.use("/api/auth", authRouter);
 app.use("/debug", debugRouter);
+app.use("/api/debug", debugRouter);
 app.use("/files", filesRouter);
+app.use("/api/files", filesRouter);
 app.use("/telegram", telegramRouter);
+app.use("/api/telegram", telegramRouter);
 app.use("/me", meRouter);
+app.use("/api/me", meRouter);
 
 // Serve production built frontend statically
 const clientDistPath = path.join(process.cwd(), "../client/dist");
@@ -40,6 +53,7 @@ if (fs.existsSync(clientDistPath)) {
   app.get("*", (req, res, next) => {
     if (
       req.path.startsWith("/auth") ||
+      req.path.startsWith("/api") ||
       req.path.startsWith("/files") ||
       req.path.startsWith("/telegram") ||
       req.path.startsWith("/debug") ||

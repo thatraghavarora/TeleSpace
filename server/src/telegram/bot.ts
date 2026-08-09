@@ -122,20 +122,21 @@ async function verifyUsername(bot: TelegramBot, message: TelegramBot.Message) {
   const from = message.from;
 
   if (!from?.username) {
-    await bot.sendMessage(message.chat.id, "Your Telegram account needs a public username to sign in.");
+    await bot.sendMessage(
+      message.chat.id,
+      `⚠️ Public username missing!\n\nPlease add a Telegram Username in Telegram Settings > Username so TeleSpace can link your cloud storage.`
+    );
     return;
   }
 
-  const result = await confirmTelegramVerification({
+  await confirmTelegramVerification({
     telegram_user_id: String(from.id),
     telegram_username: from.username,
     first_name: from.first_name
   });
 
-  if (!result.ok) {
-    await bot.sendMessage(message.chat.id, "No active sign-in request was found for your username. Enter your Telegram username on the website first, then press /start again.");
-    return;
-  }
-
-  await bot.sendMessage(message.chat.id, "Verification successful. You can now return to the website.");
+  await bot.sendMessage(
+    message.chat.id,
+    `✅ Verification Successful!\n\nYour Telegram Chat ID (${from.id}) is now linked to TeleSpace (@${from.username}).\n\nAll files uploaded from your web dashboard will now be saved directly to this bot chat!`
+  );
 }

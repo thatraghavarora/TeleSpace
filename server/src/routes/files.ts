@@ -165,20 +165,27 @@ filesRouter.post("/upload", requireAuth, upload.single("file"), async (req: Auth
     let sent: any = null;
 
     try {
-      sent = await bot.sendDocument(
-        user.telegram_user_id,
-        req.file.buffer,
-        { caption: captionText },
-        { filename: req.file.originalname, contentType: req.file.mimetype }
-      );
+      if (req.file.mimetype.startsWith("image/")) {
+        try {
+          sent = await bot.sendPhoto(user.telegram_user_id, req.file.buffer, { caption: captionText }, { filename: req.file.originalname, contentType: req.file.mimetype });
+        } catch {
+          sent = await bot.sendDocument(user.telegram_user_id, req.file.buffer, { caption: captionText }, { filename: req.file.originalname, contentType: req.file.mimetype });
+        }
+      } else {
+        sent = await bot.sendDocument(user.telegram_user_id, req.file.buffer, { caption: captionText }, { filename: req.file.originalname, contentType: req.file.mimetype });
+      }
     } catch (sendErr) {
       console.warn("User bot upload fallback to default bot:", sendErr);
-      sent = await getTelegramBot().sendDocument(
-        user.telegram_user_id,
-        req.file.buffer,
-        { caption: captionText },
-        { filename: req.file.originalname, contentType: req.file.mimetype }
-      );
+      const defaultBot = getTelegramBot();
+      if (req.file.mimetype.startsWith("image/")) {
+        try {
+          sent = await defaultBot.sendPhoto(user.telegram_user_id, req.file.buffer, { caption: captionText }, { filename: req.file.originalname, contentType: req.file.mimetype });
+        } catch {
+          sent = await defaultBot.sendDocument(user.telegram_user_id, req.file.buffer, { caption: captionText }, { filename: req.file.originalname, contentType: req.file.mimetype });
+        }
+      } else {
+        sent = await defaultBot.sendDocument(user.telegram_user_id, req.file.buffer, { caption: captionText }, { filename: req.file.originalname, contentType: req.file.mimetype });
+      }
     }
 
     const telegramFileId =

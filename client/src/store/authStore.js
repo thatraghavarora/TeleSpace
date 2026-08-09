@@ -38,6 +38,13 @@ export const useAuthStore = create((set) => ({
     sessionStorage.setItem("telegram_auth_pending", JSON.stringify(pending));
     set({ pending });
   },
+  updateBotCredentials: ({ botToken, botUsername }) => {
+    set((state) => {
+      const updatedUser = { ...state.user, botToken, botUsername };
+      localStorage.setItem("telegram_auth_user", JSON.stringify(updatedUser));
+      return { user: updatedUser };
+    });
+  },
   logout: () => {
     localStorage.removeItem("telegram_auth_token");
     localStorage.removeItem("telegram_auth_user");

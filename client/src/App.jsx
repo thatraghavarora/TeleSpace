@@ -1,6 +1,7 @@
 import { Navigate, Route, Routes } from "react-router-dom";
 import Dashboard from "./pages/Dashboard.jsx";
 import Debug from "./pages/Debug.jsx";
+import LandingPage from "./pages/LandingPage.jsx";
 import Login from "./pages/Login.jsx";
 import Verify from "./pages/Verify.jsx";
 import { useAuthStore } from "./store/authStore.js";
@@ -15,15 +16,10 @@ function PublicOnlyRoute({ children }) {
   return token ? <Navigate to="/dashboard" replace /> : children;
 }
 
-function HomeRedirect() {
-  const token = useAuthStore((state) => state.token);
-  return <Navigate to={token ? "/dashboard" : "/login"} replace />;
-}
-
 export default function App() {
   return (
     <Routes>
-      <Route path="/" element={<HomeRedirect />} />
+      <Route path="/" element={<LandingPage />} />
       <Route path="/login" element={<PublicOnlyRoute><Login /></PublicOnlyRoute>} />
       <Route path="/debug" element={<Debug />} />
       <Route path="/verify" element={<PublicOnlyRoute><Verify /></PublicOnlyRoute>} />

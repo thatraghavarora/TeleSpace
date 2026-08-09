@@ -7,7 +7,7 @@ export const authRouter = Router();
 
 const requestLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
-  limit: 5,
+  limit: 50,
   standardHeaders: true,
   legacyHeaders: false,
   message: {
@@ -42,6 +42,36 @@ authRouter.post("/request", requestLimiter, async (req, res, next) => {
     });
   } catch (error) {
     next(error);
+  }
+});
+
+authRouter.post("/validate-bot", async (req, res) => {
+  try {
+    const { botToken } = req.body;
+    if (!botToken || typeof botToken !== "string") {
+      return res.status(400).json({ success: false, message: "Bot Token is required." });
+    }
+
+    const response = await fetch(`https://api.telegram.org/bot${botToken.trim()}/getMe`);
+    const data = (await response.json()) as any;
+
+    if (!data.ok) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid Telegram Bot Token. Double check token from @BotFather."
+      });
+    }
+
+    return res.json({
+      success: true,
+      bot: {
+        id: data.result.id,
+        first_name: data.result.first_name,
+        username: `@${data.result.username}`
+      }
+    });
+  } catch (error) {
+    return res.status(500).json({ success: false, message: "Failed to connect to Telegram Bot API." });
   }
 });
 

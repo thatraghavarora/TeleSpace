@@ -799,6 +799,11 @@ export default function Dashboard() {
                   {(user?.first_name || user?.username || "U").slice(0, 1).toUpperCase()}
                 </span>
                 <span>{user?.username || "User"}</span>
+                {user?.botUsername && (
+                  <span className="ml-1 rounded-md bg-sky-500/20 px-1.5 py-0.5 text-[10px] font-mono text-sky-400">
+                    🤖 {user.botUsername}
+                  </span>
+                )}
               </div>
             </div>
           </header>

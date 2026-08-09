@@ -95,9 +95,12 @@ export function startTelegramBot() {
     }
   });
 
-  bot.on("polling_error", (error) => {
-    setTelegramError(error.message);
-    console.error("Telegram polling error:", error.message);
+  bot.on("polling_error", (error: any) => {
+    const msg = error?.message || String(error);
+    if (!msg.includes("409 Conflict")) {
+      setTelegramError(msg);
+      console.error("Telegram polling error:", msg);
+    }
   });
 
   return bot;

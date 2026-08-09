@@ -161,30 +161,37 @@ filesRouter.post("/upload", requireAuth, upload.single("file"), async (req: Auth
     const folderName = req.body.folder_name ? req.body.folder_name.trim() : null;
     const captionText = folderName ? `${folderName} > ${req.file.originalname}` : req.file.originalname;
 
+    const rawId = user.telegram_user_id;
+    const targetChatId = (rawId && rawId.match(/^\d+$/))
+      ? rawId
+      : user.telegram_username
+      ? (user.telegram_username.startsWith("@") ? user.telegram_username : `@${user.telegram_username}`)
+      : rawId;
+
     const bot = getTelegramBot((user as any).botToken);
     let sent: any = null;
 
     try {
       if (req.file.mimetype.startsWith("image/")) {
         try {
-          sent = await bot.sendPhoto(user.telegram_user_id, req.file.buffer, { caption: captionText }, { filename: req.file.originalname, contentType: req.file.mimetype });
+          sent = await bot.sendPhoto(targetChatId, req.file.buffer, { caption: captionText }, { filename: req.file.originalname, contentType: req.file.mimetype });
         } catch {
-          sent = await bot.sendDocument(user.telegram_user_id, req.file.buffer, { caption: captionText }, { filename: req.file.originalname, contentType: req.file.mimetype });
+          sent = await bot.sendDocument(targetChatId, req.file.buffer, { caption: captionText }, { filename: req.file.originalname, contentType: req.file.mimetype });
         }
       } else {
-        sent = await bot.sendDocument(user.telegram_user_id, req.file.buffer, { caption: captionText }, { filename: req.file.originalname, contentType: req.file.mimetype });
+        sent = await bot.sendDocument(targetChatId, req.file.buffer, { caption: captionText }, { filename: req.file.originalname, contentType: req.file.mimetype });
       }
     } catch (sendErr) {
       console.warn("User bot upload fallback to default bot:", sendErr);
       const defaultBot = getTelegramBot();
       if (req.file.mimetype.startsWith("image/")) {
         try {
-          sent = await defaultBot.sendPhoto(user.telegram_user_id, req.file.buffer, { caption: captionText }, { filename: req.file.originalname, contentType: req.file.mimetype });
+          sent = await defaultBot.sendPhoto(targetChatId, req.file.buffer, { caption: captionText }, { filename: req.file.originalname, contentType: req.file.mimetype });
         } catch {
-          sent = await defaultBot.sendDocument(user.telegram_user_id, req.file.buffer, { caption: captionText }, { filename: req.file.originalname, contentType: req.file.mimetype });
+          sent = await defaultBot.sendDocument(targetChatId, req.file.buffer, { caption: captionText }, { filename: req.file.originalname, contentType: req.file.mimetype });
         }
       } else {
-        sent = await defaultBot.sendDocument(user.telegram_user_id, req.file.buffer, { caption: captionText }, { filename: req.file.originalname, contentType: req.file.mimetype });
+        sent = await defaultBot.sendDocument(targetChatId, req.file.buffer, { caption: captionText }, { filename: req.file.originalname, contentType: req.file.mimetype });
       }
     }
 

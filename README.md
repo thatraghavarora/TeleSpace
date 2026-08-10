@@ -1,4 +1,4 @@
-<img width="1910" height="925" alt="image" src="https://github.com/user-attachments/assets/b94d32a1-4361-4fee-bba1-33e4cc67884d" /># TeleSpace - Unlimited Telegram Cloud File Manager 🚀
+# TeleSpace - Unlimited Telegram Cloud File Manager 🚀
 
 TeleSpace is a Web Hosting & cPanel-inspired file manager powered by Telegram Cloud Storage. It allows users to store, organize, preview, and stream files securely using Telegram as an unlimited backend storage engine.
 
